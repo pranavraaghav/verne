@@ -1,0 +1,11 @@
+{
+  "name": "dyte-vit-2022-pranavraagz",
+  "version": "1.0.0",
+  "main": "index.js",
+  "repository": "https://github.com/dyte-submissions/dyte-vit-2022-pranavraagz.git",
+  "author": "pranavraagz <pranavraagz@gmail.com>",
+  "license": "MIT",
+  "devDependencies": {
+    "typescript": "^4.7.2"
+  }
+}
