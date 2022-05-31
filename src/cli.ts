@@ -89,7 +89,7 @@ if (cli.flags.flush) {
 }
 
 // MAIN LOGIC
-let promises: Promise<DependencyResponse>[] = [];
+const promises: Promise<DependencyResponse>[] = [];
 
 const octokit = new Octokit({
   auth: access_token,

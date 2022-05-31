@@ -15,7 +15,7 @@ async function checkDependency(
   dep: string,
   url: string,
   octokit: Octokit,
-  filename: string = "package.json"
+  filename = "package.json"
 ): Promise<DependencyResponse> {
   const { owner, repo } = getOwnerAndRepoFromGithubUrl(url);
 
@@ -51,7 +51,7 @@ async function updateDependency(
   dep: string,
   url: string,
   octokit: Octokit,
-  filename: string = "package.json"
+  filename = "package.json"
 ): Promise<DependencyResponse> {
   const { owner, repo } = getOwnerAndRepoFromGithubUrl(url);
 
@@ -90,7 +90,7 @@ async function updateDependencyInDiffRepo(
   octokit: Octokit
 ) {
   // fetch file
-  let { file, file_sha } = await getFileAndShaFromGithubRepo(
+  const { file, file_sha } = await getFileAndShaFromGithubRepo(
     owner,
     repo,
     filename,
@@ -355,7 +355,7 @@ function checkPackageJsonForDependency(
   } else if (devDependencies != undefined && depName in devDependencies) {
     exists = true;
     ver = devDependencies[depName];
-    let foundIn = "devDependencies";
+    foundIn = "devDependencies";
   }
   if (ver == "") {
     return {
