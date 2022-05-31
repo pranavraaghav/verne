@@ -97,17 +97,16 @@ async function updateDependencyInDiffRepo(
     octokit
   );
 
-  // extract dep name and version
+  // Extract dep name and version
   const s = dep.split("@");
   const depName = s[0];
   const depVersion = s[1];
 
-  // check for dependencies
+  // Check for dependencies
   const { exists, isAllowHigherVersion, version_satisfied, foundIn } =
     checkPackageJsonForDependency(depName, depVersion, file);
 
-  let newContent = "";
-
+  // No changes to be made, exit
   if (exists == false || version_satisfied) {
     return {
       name: repo,
@@ -119,24 +118,36 @@ async function updateDependencyInDiffRepo(
     };
   }
 
-  if (exists && version_satisfied == false) {
-    // Update package.json
-    newContent = updatePackageJsonContent(
-      file,
-      foundIn,
-      isAllowHigherVersion,
-      depName,
-      depVersion
-    );
-  }
+  // Update contents of package.json
+  const newContent = updatePackageJsonContent(
+    file,
+    foundIn,
+    isAllowHigherVersion,
+    depName,
+    depVersion
+  );
 
-  // Fork repo
-  const forkResp = await octokit.request("POST /repos/{owner}/{repo}/forks", {
+  // Get all existing branches of repo
+  const branchResp = await octokit.request(
+    `GET /repos/${owner}/${repo}/branches`,
+    {
+      headers: {
+        accept: "application/vnd.github.v3+json",
+      },
+    }
+  );
+
+  // Get the base branch's name
+  // data[0] since first branch is *usually* base
+  const base_branch_name = branchResp.data[0]["name"];
+
+  // Fork the repo
+  await octokit.request("POST /repos/{owner}/{repo}/forks", {
     owner: owner,
     repo: repo,
   });
 
-  // Make update changes in your fork
+  // Apply changes in your fork
   await octokit.request("PUT /repos/{owner}/{repo}/contents/{path}", {
     owner: currentUser,
     repo: repo,
@@ -147,14 +158,13 @@ async function updateDependencyInDiffRepo(
   });
 
   // Make the PR
-  // TODO: make the main part dynamic
   const prResponse = await octokit.request("POST /repos/{owner}/{repo}/pulls", {
     owner: owner,
     repo: repo,
     title: "Updated dependencies",
     body: "Merge these or else 🔪",
-    head: `${currentUser}:main`,
-    base: "main",
+    head: `${currentUser}:${base_branch_name}`,
+    base: base_branch_name,
   });
 
   return {
