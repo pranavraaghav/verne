@@ -1,5 +1,6 @@
 import axios from "axios";
 import Joi from "joi";
+import { Octokit } from "octokit";
 
 interface DependencyResponse {
   name: string;
@@ -12,15 +13,28 @@ interface DependencyResponse {
 async function checkDependency(
   dep: string,
   url: string,
+  octokit: Octokit,
   filename: string = "package.json"
 ): Promise<DependencyResponse> {
   let exists = false;
   const { author, repo } = getAuthorAndRepoFromGithubUrl(url);
 
   // fetch file
-  const response = await axios.get(
-    `https://api.github.com/repos/${author}/${repo}/contents/${filename}`
-  );
+  let response;
+  try {
+    response = await octokit.request(
+      `GET /repos/${author}/${repo}/contents/${filename}`
+    );
+  } catch (error) {
+    console.log(error);
+    return {
+      name: "",
+      repo: "",
+      version: "",
+      version_satisfied: false,
+      exists: false,
+    };
+  }
 
   const schema = Joi.object({
     dependencies: Joi.object({}),
