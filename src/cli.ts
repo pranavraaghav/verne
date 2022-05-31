@@ -12,9 +12,8 @@ import { dirname } from "path";
 import * as csv from "fast-csv";
 import { Octokit } from "octokit";
 import * as dotenv from "dotenv";
-import moment from "moment";
-import { getAccessToken } from "./githubToken.js";
 import Conf from "conf";
+import { getAccessToken } from "./githubToken.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -31,6 +30,7 @@ $ foo <input>
 Options
 --file, -i   Describe location of CSV 
 --update, -u  Update dependancies 
+--flush, -f  Clear logged in GitHub user 
 
 Examples
 $ foo -i input.csv axios@0.23.0
@@ -48,6 +48,11 @@ $ foo -i input.csv axios@0.23.0
         default: false,
         alias: "u",
       },
+      flush: {
+        type: "boolean",
+        default: false,
+        alias: "f",
+      },
     },
   }
 );
@@ -60,23 +65,25 @@ if (oauthClientID == undefined) {
 
 let access_token;
 
-access_token = conf.get("ACCESS_TOKEN", undefined);
-if (access_token != undefined) {
-  const expires_at = conf.get("EXPIRES_AT", "");
-  if (typeof expires_at !== "string") {
-    process.exit();
-  }
-  const date = new Date(expires_at);
-  if (new Date() > date) {
-    console.log("Existing token has expired, fetching new access token");
-    try {
-      access_token = await getAccessToken(oauthClientID);
-    } catch (error) {
-      console.log(error);
+if (cli.flags.flush) {
+  access_token = await getAccessToken(oauthClientID, conf);
+} else {
+  access_token = conf.get("ACCESS_TOKEN", undefined);
+  if (access_token != undefined) {
+    const expires_at = conf.get("EXPIRES_AT", "");
+    if (typeof expires_at !== "string") {
       process.exit();
     }
-    conf.set("ACCESS_TOKEN", access_token);
-    conf.set("EXPIRES_AT", moment().add(6, "hours").toString()); // Tokens by default last 8 hours
+    const date = new Date(expires_at);
+    if (new Date() > date) {
+      console.log("Existing token has expired, fetching new access token");
+      try {
+        access_token = await getAccessToken(oauthClientID, conf);
+      } catch (error) {
+        console.log(error);
+        process.exit();
+      }
+    }
   }
 }
 
@@ -91,7 +98,7 @@ const dependencyToCheck = cli.input[0];
 fs.createReadStream(`${__dirname}/${cli.flags.file}`)
   .pipe(csv.parse({ headers: true }))
   .on("error", (error) => console.error(error))
-  .on("data", (row) => {
+  .on("data", async (row) => {
     const url = row["repo"];
     if (cli.flags.update == true) {
       promises.push(updateDependency(dependencyToCheck, url, octokit));
