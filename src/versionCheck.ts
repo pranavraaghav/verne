@@ -87,7 +87,8 @@ async function updateDependency(
   octokit: Octokit,
   filename: string = "package.json"
 ) {
-  console.log("RUNNING UPDATE DEPENDENCY");
+  const NEW_BRANCH_NAME = "dependency-update";
+  let base_branch_name = "main";
   let exists = false;
   const { owner, repo } = getOwnerAndRepoFromGithubUrl(url);
 
@@ -156,7 +157,41 @@ async function updateDependency(
   }
 
   if (exists && version_satisfied == false) {
-    // Update the record
+    // UPDATE THE RECORD
+    // CREATE BRANCH
+    let isBranchExist = false;
+    const headResp = await octokit.request(
+      `GET /repos/${owner}/${repo}/git/refs/heads`,
+      {
+        headers: {
+          accept: "application/vnd.github.v3+json",
+        },
+      }
+    );
+
+    const c = headResp.data[0]["ref"].split("/");
+    base_branch_name = c[c.length - 1];
+    const shaRef = headResp.data[0]["object"]["sha"];
+    // But first make sure it doesn't exist already
+    headResp.data.forEach((item: object) => {
+      if (item["ref" as keyof typeof item] == `refs/heads/${NEW_BRANCH_NAME}`) {
+        isBranchExist = true;
+      }
+    });
+
+    if (isBranchExist == false) {
+      const newBranchResp = await octokit.request(
+        `POST /repos/${owner}/${repo}/git/refs`,
+        {
+          owner: owner,
+          repo: repo,
+          ref: `refs/heads/${NEW_BRANCH_NAME}`,
+          sha: shaRef,
+        }
+      );
+    }
+
+    // COMMIT CHANGES TO BRANCH
     if (foundIn == "dependencies") {
       if (isAllowHigherVersion) {
         dependencies[depName] = `^${depVersion}`;
@@ -176,10 +211,23 @@ async function updateDependency(
         path: filename,
         message: `Update dependency ${depName} to v${depVersion}`,
         content: newContent,
+        branch: NEW_BRANCH_NAME,
         sha: response.data["sha"],
       });
     }
   }
+
+  // MAKE PR USING BRANCH
+  const prResponse = await octokit.request("POST /repos/{owner}/{repo}/pulls", {
+    owner: owner,
+    repo: repo,
+    title: "Updated Dependencies",
+    body: "Please pull these awesome changes in!",
+    head: NEW_BRANCH_NAME,
+    base: base_branch_name,
+  });
+
+  const pullUrl = prResponse.data["url"];
 
   return {
     name: repo,
@@ -187,6 +235,7 @@ async function updateDependency(
     version: ver,
     version_satisfied: version_satisfied,
     exists: exists,
+    pull_url: pullUrl,
   };
 }
 
