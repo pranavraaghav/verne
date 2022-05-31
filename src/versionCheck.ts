@@ -178,7 +178,7 @@ async function updateDependencyInOwnRepo(
   let base_branch_name = "main";
 
   // fetch file
-  let { file, file_sha } = await getFileAndShaFromGithubRepo(
+  const { file, file_sha } = await getFileAndShaFromGithubRepo(
     owner,
     repo,
     filename,
@@ -186,7 +186,7 @@ async function updateDependencyInOwnRepo(
   );
   const { dependencies, devDependencies } = file;
 
-  // extract dep name and version
+  // Extract dependency name and version
   const s = dep.split("@");
   const depName = s[0];
   const depVersion = s[1];
@@ -194,68 +194,82 @@ async function updateDependencyInOwnRepo(
   const { exists, isAllowHigherVersion, version_satisfied, foundIn } =
     checkPackageJsonForDependency(depName, depVersion, file);
 
-  if (exists && version_satisfied == false) {
-    // UPDATE THE RECORD
-    // CREATE BRANCH
-    let isBranchExist = false;
-    const headResp = await octokit.request(
-      `GET /repos/${owner}/${repo}/git/refs/heads`,
-      {
-        headers: {
-          accept: "application/vnd.github.v3+json",
-        },
-      }
-    );
-
-    const c = headResp.data[0]["ref"].split("/");
-    base_branch_name = c[c.length - 1];
-    const shaRef = headResp.data[0]["object"]["sha"];
-    // But first make sure it doesn't exist already
-    headResp.data.forEach((item: object) => {
-      if (item["ref" as keyof typeof item] == `refs/heads/${NEW_BRANCH_NAME}`) {
-        isBranchExist = true;
-      }
-    });
-
-    if (isBranchExist == false) {
-      const newBranchResp = await octokit.request(
-        `POST /repos/${owner}/${repo}/git/refs`,
-        {
-          owner: owner,
-          repo: repo,
-          ref: `refs/heads/${NEW_BRANCH_NAME}`,
-          sha: shaRef,
-        }
-      );
-    }
-
-    // COMMIT CHANGES TO BRANCH
-    if (foundIn == "dependencies") {
-      if (isAllowHigherVersion) {
-        dependencies[depName] = `^${depVersion}`;
-      } else {
-        dependencies[depName] = `${depVersion}`;
-      }
-      file["dependencies"] = dependencies;
-
-      const obj: object = file;
-      const newContent = Buffer.from(JSON.stringify(obj, null, 4)).toString(
-        "base64"
-      );
-
-      await octokit.request("PUT /repos/{owner}/{repo}/contents/{path}", {
-        owner: owner,
-        repo: repo,
-        path: filename,
-        message: `Update dependency ${depName} to v${depVersion}`,
-        content: newContent,
-        branch: NEW_BRANCH_NAME,
-        sha: file_sha,
-      });
-    }
+  // No changes to be made in these cases, exit
+  if (exists == false || version_satisfied == true) {
+    return {
+      name: repo,
+      repo: url,
+      version: depVersion,
+      version_satisfied: version_satisfied,
+      exists: exists,
+      update_pr: "",
+    };
   }
 
-  // MAKE PR USING BRANCH
+  // Get data on existing branches of repo
+  const headResp = await octokit.request(
+    `GET /repos/${owner}/${repo}/git/refs/heads`,
+    {
+      headers: {
+        accept: "application/vnd.github.v3+json",
+      },
+    }
+  );
+
+  // Get the base branch's name
+  // data[0] because first branch is *usually* base
+  const c = headResp.data[0]["ref"].split("/");
+  base_branch_name = c[c.length - 1];
+
+  // Get sha reference of the branch
+  const shaRefOfBranch = headResp.data[0]["object"]["sha"];
+
+  // Ensure branch we want to create doesn't exist already
+  headResp.data.forEach((item: object) => {
+    // TODO: Handle situations where branch already exists in a better manner
+    // If true, it means branch we want to create already exists, so exit
+    const branchNameRef = item["ref" as keyof typeof item];
+    if (branchNameRef == `refs/heads/${NEW_BRANCH_NAME}`) {
+      return {
+        name: repo,
+        repo: url,
+        version: depVersion,
+        version_satisfied: version_satisfied,
+        exists: exists,
+        update_pr: "",
+      };
+    }
+  });
+
+  // Create branch
+  await octokit.request(`POST /repos/${owner}/${repo}/git/refs`, {
+    owner: owner,
+    repo: repo,
+    ref: `refs/heads/${NEW_BRANCH_NAME}`,
+    sha: shaRefOfBranch,
+  });
+
+  // Make the changes to package.json
+  const newContent = updatePackageJsonContent(
+    file,
+    foundIn,
+    isAllowHigherVersion,
+    depName,
+    depVersion
+  );
+
+  // Commit changes and push to the branch created earlier
+  await octokit.request("PUT /repos/{owner}/{repo}/contents/{path}", {
+    owner: owner,
+    repo: repo,
+    path: filename,
+    message: `Update dependency ${depName} to v${depVersion}`,
+    content: newContent,
+    branch: NEW_BRANCH_NAME,
+    sha: file_sha,
+  });
+
+  // Create a PR using the new branch
   const prResponse = await octokit.request("POST /repos/{owner}/{repo}/pulls", {
     owner: owner,
     repo: repo,
@@ -265,7 +279,7 @@ async function updateDependencyInOwnRepo(
     base: base_branch_name,
   });
 
-  const pullUrl = prResponse.data["url"];
+  const pullRequestURL = prResponse.data["url"];
 
   return {
     name: repo,
@@ -273,7 +287,7 @@ async function updateDependencyInOwnRepo(
     version: depVersion,
     version_satisfied: version_satisfied,
     exists: exists,
-    update_pr: pullUrl,
+    update_pr: pullRequestURL,
   };
 }
 
