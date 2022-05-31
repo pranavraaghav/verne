@@ -14,6 +14,7 @@ import { Octokit } from "octokit";
 import * as dotenv from "dotenv";
 import Conf from "conf";
 import { getAccessToken } from "./githubToken.js";
+import { createSpinner } from "nanospinner";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -95,6 +96,8 @@ const octokit = new Octokit({
 });
 
 const dependencyToCheck = cli.input[0];
+
+const spinnerParseCSV = createSpinner("Parsing CSV input").start();
 fs.createReadStream(`${__dirname}/${cli.flags.file}`)
   .pipe(csv.parse({ headers: true }))
   .on("error", (error) => console.error(error))
@@ -107,15 +110,18 @@ fs.createReadStream(`${__dirname}/${cli.flags.file}`)
     }
   })
   .on("end", () => {
+    spinnerParseCSV.success();
     const csvOutStream = csv.format({ headers: true });
 
     csvOutStream
       .pipe(fs.createWriteStream(`${__dirname}/output.csv`))
       .on("end", () => process.exit());
 
+    const spinnerOperations = createSpinner("Performing operations").start();
     Promise.all(promises).then((resolved) => {
       resolved.forEach((item) => {
         csvOutStream.write(item);
       });
+      spinnerOperations.success();
     });
   });
