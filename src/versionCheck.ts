@@ -146,8 +146,10 @@ async function updateDependency(
     let foundIn = "devDependencies";
   }
   let version_satisfied = false;
+  let isAllowHigherVersion = false;
   if (ver != "") {
     if (ver[0] == "^") {
+      isAllowHigherVersion = true;
       ver = ver.substring(1);
     }
     version_satisfied = checkIfVersionSatisfied(depVersion, ver);
@@ -156,7 +158,11 @@ async function updateDependency(
   if (exists && version_satisfied == false) {
     // Update the record
     if (foundIn == "dependencies") {
-      dependencies[depName] = `^${depVersion}`;
+      if (isAllowHigherVersion) {
+        dependencies[depName] = `^${depVersion}`;
+      } else {
+        dependencies[depName] = `${depVersion}`;
+      }
       validatedPackageJson.value["dependencies"] = dependencies;
 
       const obj: object = validatedPackageJson.value;
