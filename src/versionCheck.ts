@@ -17,67 +17,31 @@ async function checkDependency(
   octokit: Octokit,
   filename: string = "package.json"
 ): Promise<DependencyResponse> {
-  let exists = false;
   const { owner, repo } = getOwnerAndRepoFromGithubUrl(url);
 
   // fetch file
-  let fileResponse;
-  try {
-    fileResponse = await octokit.request(
-      `GET /repos/${owner}/${repo}/contents/${filename}`
-    );
-  } catch (error) {
-    console.log(error);
-    return {
-      name: "",
-      repo: "",
-      version: "",
-      version_satisfied: false,
-      exists: false,
-    };
-  }
-
-  const schema = Joi.object({
-    dependencies: Joi.object({}),
-    devDependencies: Joi.object({}),
-  }).unknown(true);
-
-  let validatedPackageJson: Joi.ValidationResult<any>;
-  if (fileResponse.status == 200) {
-    const encoded = fileResponse.data.content;
-    const decoded = Buffer.from(encoded, "base64").toString();
-    validatedPackageJson = schema.validate(JSON.parse(decoded));
-  } else {
-    throw new Error(`GitHub API responded with ${fileResponse.status}`);
-  }
-  const { dependencies, devDependencies } = validatedPackageJson.value;
+  const { file } = await getFileAndShaFromGithubRepo(
+    owner,
+    repo,
+    filename,
+    octokit
+  );
 
   // extract dep name and version
   const s = dep.split("@");
   const depName = s[0];
   const depVersion = s[1];
 
-  let ver = "";
-  if (depName in dependencies) {
-    ver = dependencies[depName];
-    exists = true;
-  }
-  if (devDependencies != undefined && depName in devDependencies) {
-    exists = true;
-    ver = devDependencies[depName];
-  }
-  let version_satisfied = false;
-  if (ver != "") {
-    if (ver[0] == "^") {
-      ver = ver.substring(1);
-    }
-    version_satisfied = checkIfVersionSatisfied(depVersion, ver);
-  }
+  const { exists, version_satisfied } = checkPackageJsonForDependency(
+    depName,
+    depVersion,
+    file
+  );
 
   return {
     name: repo,
     repo: url,
-    version: ver,
+    version: depVersion,
     version_satisfied: version_satisfied,
     exists: exists,
   };
