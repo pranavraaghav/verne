@@ -1,6 +1,8 @@
 import Joi from "joi";
 import { Octokit } from "octokit";
 
+const NEW_BRANCH_NAME = "dependency-update";
+
 interface DependencyResponse {
   name: string;
   repo: string;
@@ -19,9 +21,9 @@ async function checkDependency(
   const { owner, repo } = getOwnerAndRepoFromGithubUrl(url);
 
   // fetch file
-  let response;
+  let fileResponse;
   try {
-    response = await octokit.request(
+    fileResponse = await octokit.request(
       `GET /repos/${owner}/${repo}/contents/${filename}`
     );
   } catch (error) {
@@ -41,12 +43,12 @@ async function checkDependency(
   }).unknown(true);
 
   let validatedPackageJson: Joi.ValidationResult<any>;
-  if (response.status == 200) {
-    const encoded = response.data.content;
+  if (fileResponse.status == 200) {
+    const encoded = fileResponse.data.content;
     const decoded = Buffer.from(encoded, "base64").toString();
     validatedPackageJson = schema.validate(JSON.parse(decoded));
   } else {
-    throw new Error(`GitHub API responded with ${response.status}`);
+    throw new Error(`GitHub API responded with ${fileResponse.status}`);
   }
   const { dependencies, devDependencies } = validatedPackageJson.value;
 
@@ -86,75 +88,147 @@ async function updateDependency(
   url: string,
   octokit: Octokit,
   filename: string = "package.json"
-) {
-  const NEW_BRANCH_NAME = "dependency-update";
-  let base_branch_name = "main";
-  let exists = false;
+): Promise<DependencyResponse> {
   const { owner, repo } = getOwnerAndRepoFromGithubUrl(url);
 
-  // fetch file
-  let response;
-  try {
-    response = await octokit.request(
-      `GET /repos/${owner}/${repo}/contents/${filename}`,
-      {
-        headers: {
-          accept: "application/vnd.github.v3+json",
-        },
-      }
+  const currentUserResp = await octokit.request("GET /user", {});
+  const currentUser = currentUserResp.data["login"];
+
+  if (owner == currentUser) {
+    return await updateDependencyInOwnRepo(
+      dep,
+      url,
+      owner,
+      repo,
+      filename,
+      octokit
     );
-  } catch (error) {
-    console.log(error);
-    return {
-      name: "",
-      repo: "",
-      version: "",
-      version_satisfied: false,
-      exists: false,
-    };
-  }
-
-  const schema = Joi.object({
-    dependencies: Joi.object({}),
-    devDependencies: Joi.object({}),
-  }).unknown(true);
-
-  let validatedPackageJson: Joi.ValidationResult<any>;
-  if (response.status == 200) {
-    const encoded = response.data.content;
-    const decoded = Buffer.from(encoded, "base64").toString();
-    validatedPackageJson = schema.validate(JSON.parse(decoded));
   } else {
-    throw new Error(`GitHub API responded with ${response.status}`);
+    return await updateDependencyInDiffRepo(
+      dep,
+      url,
+      owner,
+      currentUser,
+      repo,
+      filename,
+      octokit
+    );
   }
-  const { dependencies, devDependencies } = validatedPackageJson.value;
+}
+
+async function updateDependencyInDiffRepo(
+  dep: string,
+  url: string,
+  owner: string,
+  currentUser: string,
+  repo: string,
+  filename: string,
+  octokit: Octokit
+) {
+  // fetch file
+  let { file, file_sha } = await getFileAndShaFromGithubRepo(
+    owner,
+    repo,
+    filename,
+    octokit
+  );
 
   // extract dep name and version
   const s = dep.split("@");
   const depName = s[0];
   const depVersion = s[1];
 
-  let ver = "";
-  let foundIn = "";
-  if (depName in dependencies) {
-    ver = dependencies[depName];
-    exists = true;
-    foundIn = "dependencies";
+  // check for dependencies
+  const { exists, isAllowHigherVersion, version_satisfied, foundIn } =
+    checkPackageJsonForDependency(depName, depVersion, file);
+
+  let newContent = "";
+
+  if (exists == false || version_satisfied) {
+    return {
+      name: repo,
+      repo: url,
+      version: depVersion,
+      version_satisfied: version_satisfied,
+      exists: exists,
+      update_pr: "",
+    };
   }
-  if (devDependencies != undefined && depName in devDependencies) {
-    exists = true;
-    ver = devDependencies[depName];
-    let foundIn = "devDependencies";
+
+  if (exists && version_satisfied == false) {
+    // Update package.json
+    newContent = updatePackageJsonContent(
+      file,
+      foundIn,
+      isAllowHigherVersion,
+      depName,
+      depVersion
+    );
   }
-  let version_satisfied = false;
-  let isAllowHigherVersion = false;
-  if (ver != "") {
-    if (ver[0] == "^") {
-      isAllowHigherVersion = true;
-      ver = ver.substring(1);
-    }
-    version_satisfied = checkIfVersionSatisfied(depVersion, ver);
-  }
+
+  // Fork repo
+  const forkResp = await octokit.request("POST /repos/{owner}/{repo}/forks", {
+    owner: owner,
+    repo: repo,
+  });
+
+  // Make update changes in your fork
+  await octokit.request("PUT /repos/{owner}/{repo}/contents/{path}", {
+    owner: currentUser,
+    repo: repo,
+    path: filename,
+    message: `Update dependency ${depName} to v${depVersion}`,
+    content: newContent,
+    sha: file_sha,
+  });
+
+  // Make the PR
+  // TODO: make the main part dynamic
+  const prResponse = await octokit.request("POST /repos/{owner}/{repo}/pulls", {
+    owner: owner,
+    repo: repo,
+    title: "Updated dependencies",
+    body: "Merge these or else 🔪",
+    head: `${currentUser}:main`,
+    base: "main",
+  });
+
+  return {
+    name: repo,
+    repo: url,
+    version: depVersion,
+    version_satisfied: version_satisfied,
+    exists: exists,
+    update_pr: prResponse.data["url"],
+  };
+}
+
+async function updateDependencyInOwnRepo(
+  dep: string,
+  url: string,
+  owner: string,
+  repo: string,
+  filename: string,
+  octokit: Octokit
+) {
+  let base_branch_name = "main";
+
+  // fetch file
+  let { file, file_sha } = await getFileAndShaFromGithubRepo(
+    owner,
+    repo,
+    filename,
+    octokit
+  );
+  const { dependencies, devDependencies } = file;
+
+  // extract dep name and version
+  const s = dep.split("@");
+  const depName = s[0];
+  const depVersion = s[1];
+
+  const { exists, isAllowHigherVersion, version_satisfied, foundIn } =
+    checkPackageJsonForDependency(depName, depVersion, file);
 
   if (exists && version_satisfied == false) {
     // UPDATE THE RECORD
@@ -198,9 +272,9 @@ async function updateDependency(
       } else {
         dependencies[depName] = `${depVersion}`;
       }
-      validatedPackageJson.value["dependencies"] = dependencies;
+      file["dependencies"] = dependencies;
 
-      const obj: object = validatedPackageJson.value;
+      const obj: object = file;
       const newContent = Buffer.from(JSON.stringify(obj, null, 4)).toString(
         "base64"
       );
@@ -212,7 +286,7 @@ async function updateDependency(
         message: `Update dependency ${depName} to v${depVersion}`,
         content: newContent,
         branch: NEW_BRANCH_NAME,
-        sha: response.data["sha"],
+        sha: file_sha,
       });
     }
   }
@@ -232,10 +306,130 @@ async function updateDependency(
   return {
     name: repo,
     repo: url,
-    version: ver,
+    version: depVersion,
     version_satisfied: version_satisfied,
     exists: exists,
-    pull_url: pullUrl,
+    update_pr: pullUrl,
+  };
+}
+
+function updatePackageJsonContent(
+  file: any,
+  foundIn: string,
+  isAllowHigherVersion: boolean,
+  depName: string,
+  depVersion: string
+): string {
+  let newContent = "";
+
+  const { dependencies, devDependencies } = file;
+  if (foundIn == "dependencies") {
+    if (isAllowHigherVersion) {
+      dependencies[depName] = `^${depVersion}`;
+    } else {
+      dependencies[depName] = `${depVersion}`;
+    }
+    file["dependencies"] = dependencies;
+    const obj: object = file;
+    newContent = Buffer.from(JSON.stringify(obj, null, 4)).toString("base64");
+  }
+  return newContent;
+}
+
+/**
+ *
+ * @param depName
+ * @param depVersion
+ * @param file The package.json file as object
+ * @returns
+ */
+function checkPackageJsonForDependency(
+  depName: string,
+  depVersion: string,
+  file: any
+): {
+  exists: boolean;
+  version_satisfied: boolean;
+  isAllowHigherVersion: boolean;
+  foundIn: string;
+} {
+  let exists = false;
+  let isAllowHigherVersion = false;
+  let ver = "";
+  let foundIn = "";
+
+  const { dependencies, devDependencies } = file;
+
+  if (dependencies != undefined && depName in dependencies) {
+    ver = dependencies[depName];
+    exists = true;
+    foundIn = "dependencies";
+  } else if (devDependencies != undefined && depName in devDependencies) {
+    exists = true;
+    ver = devDependencies[depName];
+    let foundIn = "devDependencies";
+  }
+  if (ver == "") {
+    return {
+      exists: exists,
+      isAllowHigherVersion: isAllowHigherVersion,
+      version_satisfied: false,
+      foundIn: "",
+    };
+  }
+  if (ver[0] == "^") {
+    isAllowHigherVersion = true;
+    ver = ver.substring(1);
+  }
+  const version_satisfied = checkIfVersionSatisfied(depVersion, ver);
+
+  return {
+    exists: exists,
+    isAllowHigherVersion: isAllowHigherVersion,
+    version_satisfied: version_satisfied,
+    foundIn: foundIn,
+  };
+}
+
+async function getFileAndShaFromGithubRepo(
+  owner: string,
+  repo: string,
+  filename: string,
+  octokit: Octokit
+): Promise<{
+  file: any;
+  file_sha: string;
+}> {
+  let file: object;
+  let packageJsonResponse;
+  try {
+    packageJsonResponse = await octokit.request(
+      `GET /repos/${owner}/${repo}/contents/${filename}`,
+      {
+        headers: {
+          accept: "application/vnd.github.v3+json",
+        },
+      }
+    );
+  } catch (error) {
+    throw error;
+  }
+
+  const schema = Joi.object({
+    dependencies: Joi.object({}),
+    devDependencies: Joi.object({}),
+  }).unknown(true);
+
+  if (packageJsonResponse.status == 200) {
+    const encoded = packageJsonResponse.data.content;
+    const decoded = Buffer.from(encoded, "base64").toString();
+    file = JSON.parse(decoded);
+  } else {
+    throw new Error(`GitHub API responded with ${packageJsonResponse.status}`);
+  }
+  return {
+    file: file,
+    file_sha: packageJsonResponse.data["sha"],
   };
 }
 
