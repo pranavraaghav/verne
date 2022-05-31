@@ -1,11 +1,20 @@
 import axios from "axios";
 import Joi from "joi";
 
+interface DependencyResponse {
+  name: string;
+  repo: string;
+  version: string;
+  version_satisfied: boolean;
+  exists: boolean;
+}
+
 async function checkDependency(
   dep: string,
   url: string,
-  filename: string
-): Promise<boolean> {
+  filename: string = "package.json"
+): Promise<DependencyResponse> {
+  let exists = false;
   const { author, repo } = getAuthorAndRepoFromGithubUrl(url);
 
   // fetch file
@@ -36,14 +45,27 @@ async function checkDependency(
   let ver = "";
   if (depName in dependencies) {
     ver = dependencies[depName];
+    exists = true;
   }
-  if (depName in devDependencies) {
+  if (devDependencies != undefined && depName in devDependencies) {
+    exists = true;
     ver = devDependencies[depName];
   }
-  if (ver[0] == "^") {
-    ver = ver.substring(1);
+  let version_satisfied = false;
+  if (ver != "") {
+    if (ver[0] == "^") {
+      ver = ver.substring(1);
+    }
+    version_satisfied = checkIfVersionSatisfied(depVersion, ver);
   }
-  return checkIfVersionIsLesserThanOrEqualTo(depVersion, ver);
+
+  return {
+    name: repo,
+    repo: url,
+    version: ver,
+    version_satisfied: version_satisfied,
+    exists: exists,
+  };
 }
 
 /**
@@ -66,12 +88,9 @@ function getAuthorAndRepoFromGithubUrl(url: string): {
   };
 }
 
-function checkIfVersionIsLesserThanOrEqualTo(
-  givenVersion: string,
-  repoVersion: string
-) {
+function checkIfVersionSatisfied(givenVersion: string, remoteVersion: string) {
   const v1 = givenVersion.split(".");
-  const v2 = repoVersion.split(".");
+  const v2 = remoteVersion.split(".");
 
   if (v1.length != 3 || v2.length != 3) {
     throw new Error("Invalid input");
@@ -83,4 +102,4 @@ function checkIfVersionIsLesserThanOrEqualTo(
   return true;
 }
 
-export { checkDependency };
+export { checkDependency, DependencyResponse };
