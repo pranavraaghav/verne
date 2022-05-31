@@ -2,7 +2,11 @@
 
 import meow from "meow";
 import * as fs from "fs";
-import { checkDependency, DependencyResponse } from "./versionCheck.js";
+import {
+  checkDependency,
+  DependencyResponse,
+  updateDependency,
+} from "./versionCheck.js";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 import * as csv from "fast-csv";
@@ -89,7 +93,11 @@ fs.createReadStream(`${__dirname}/${cli.flags.file}`)
   .on("error", (error) => console.error(error))
   .on("data", (row) => {
     const url = row["repo"];
-    promises.push(checkDependency(dependencyToCheck, url, octokit));
+    if (cli.flags.update == true) {
+      promises.push(updateDependency(dependencyToCheck, url, octokit));
+    } else {
+      promises.push(checkDependency(dependencyToCheck, url, octokit));
+    }
   })
   .on("end", () => {
     const csvOutStream = csv.format({ headers: true });
