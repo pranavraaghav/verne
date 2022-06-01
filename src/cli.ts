@@ -138,5 +138,6 @@ fs.createReadStream(`${__dirname}/${cli.flags.file}`)
         csvOutStream.write(item);
       });
       spinnerOperations.success();
+      console.table(resolved);
     });
   });
