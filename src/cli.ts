@@ -4,7 +4,7 @@ import meow from "meow";
 import * as fs from "fs";
 
 import { fileURLToPath } from "url";
-import { dirname } from "path";
+import { resolve, dirname } from "path";
 import * as csv from "fast-csv";
 import { Octokit } from "octokit";
 import * as dotenv from "dotenv";
@@ -16,8 +16,8 @@ import { getAccessToken } from "./auth/getAccessToken.js";
 
 import { validateInput } from "./core/util/validateInput.js";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
+const currentDir = dirname(fileURLToPath(import.meta.url));
+const __dirname = resolve(currentDir + "/..");
 
 dotenv.config();
 const conf = new Conf();
