@@ -2,19 +2,17 @@
 
 import meow from "meow";
 import * as fs from "fs";
-import {
-  checkDependency,
-  DependencyResponse,
-  updateDependency,
-} from "./versionCheck.js";
+
 import { fileURLToPath } from "url";
 import { dirname } from "path";
 import * as csv from "fast-csv";
 import { Octokit } from "octokit";
 import * as dotenv from "dotenv";
 import Conf from "conf";
-import { getAccessToken } from "./githubToken.js";
 import { createSpinner } from "nanospinner";
+import { updateDependency } from "./core/updateDependency.js";
+import { checkDependency } from "./core/checkDependency.js";
+import { getAccessToken } from "./auth/getAccessToken.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
