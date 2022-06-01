@@ -106,19 +106,17 @@ This is an example of how to list things you need to use the software and how to
    ```sh
    npm install
    ```
-3. Make a copy of `sample.env` into `.env`
-
-   ```sh
-   cp sample.env .env
-   ```
-4. (Optional) Change the `OAUTH_CLIENT_ID` property in `.env` to your own Github Oauth app (this will be used to authenticate with Github). However, the client_id of an existing OAuth app is already included by default. 
-5. Build the app 
+3. Build the app 
    ```sh
    npm run build
    ```
-6. Install it globally on your system 
+4. Install it globally on your system (might require superuser)
    ```sh
    npm install -g .
+   ```
+   or 
+   ```sh
+   sudo npm install -g .
    ```
 
 <p align="right">(<a href="#top">back to top</a>)</p>
@@ -126,25 +124,62 @@ This is an example of how to list things you need to use the software and how to
 
 <!-- USAGE EXAMPLES -->
 ## Usage
+### Input 
+```
+$ verne <input>         <input> must be of form <name>@<version-number>
+```
+### Options (flags)
+```
+Options
+--file, -i            Describe location of CSV (REQUIRED)
+--update, -u          Update dependancies 
+--clear               Clear logged in GitHub user 
+--version             View version 
+--help                View help
+```
+### Examples
+#### Check if `axios@0.23.0` is satisfied by all repos in `input.csv`
+```
+$ verne -i input.csv axios@0.23.0
+```
+#### Check if `axios@0.23.0` is satisfied by all repos in `input.csv` AND update if not satisfied
+```
+$ verne -u -i input.csv axios@0.23.0
+```
+**_NOTE:_** <br/>
+* Updates will not be made when version is satisfied. 
+* Updates cannot be made on repositories with a pre-existing un-merged update PR made by the CLI. 
+* Major changes are not updated automatically (this is an intended feature) and will have to be done manually on a repo-by-repo basis due to its breaking nature. 
+#### Force a login attempt
+```
+$ verne --clear -i input.csv axios@0.23.0
+```
 
+### Sample `.csv` file: 
+```csv
+name,repo
+dyte-react-sample-app,https://github.com/dyte-in/react-sample-app/
+dyte-js-sample-app,https://github.com/dyte-in/javascript-sample-app
+dyte-sample-app-backend,https://github.com/dyte-in/backend-sample-app
+```
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
 
 
 <!-- ROADMAP -->
-## Roadmap
+## Features and Roadmap
 
-- [x] Check for dependencies in public & private repos
-- [x] Update dependencies in repos owned by self
-- [x] Update dependenies in repos not owned by self (private repos will require account to have access) 
+- [x] Check for dependency satisfaction in public & private repos
+- [x] Update dependencies
+    - [x] In repos owned by user 
+    - [x] In repos not owned by user (private repos will require the account to have prior access) 
 - [x] Github login
 - [x] Credential caching 
-- [x] Read from CSV
-- [x] Write output to CSV
-- [ ] 
-- [ ] Feature 3
-    - [ ] Nested Feature
+- [x] Read & Write CSV
+- [x] Prevent updating dependency on major changes (breaking changes) 
+- [ ] Tables with wordWrap to fit data in smaller terminal windows
+- [ ] Add functionality to run as a Github Action 
 
 See the [open issues](https://github.com/dyte-submissions/dyte-vit-2022-pranavraagz/issues) for a full list of proposed features (and known issues).
 
