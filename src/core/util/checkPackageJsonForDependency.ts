@@ -1,15 +1,15 @@
-import { checkIfVersionSatisfied } from "./checkIfVersionSatisfied.js";
-
+import pkg from "semver";
+const { lte } = pkg;
 /**
  *
- * @param depName
- * @param depVersion
+ * @param inputDepName
+ * @param inputDepVersion
  * @param file The package.json file as object
  * @returns
  */
 export function checkPackageJsonForDependency(
-  depName: string,
-  depVersion: string,
+  inputDepName: string,
+  inputDepVersion: string,
   file: any
 ): {
   exists: boolean;
@@ -19,21 +19,21 @@ export function checkPackageJsonForDependency(
 } {
   let exists = false;
   let isAllowHigherVersion = false;
-  let ver = "";
+  let remoteDepVersion = "";
   let foundIn = "";
 
   const { dependencies, devDependencies } = file;
 
-  if (dependencies != undefined && depName in dependencies) {
-    ver = dependencies[depName];
+  if (dependencies != undefined && inputDepName in dependencies) {
+    remoteDepVersion = dependencies[inputDepName];
     exists = true;
     foundIn = "dependencies";
-  } else if (devDependencies != undefined && depName in devDependencies) {
+  } else if (devDependencies != undefined && inputDepName in devDependencies) {
     exists = true;
-    ver = devDependencies[depName];
+    remoteDepVersion = devDependencies[inputDepName];
     foundIn = "devDependencies";
   }
-  if (ver == "") {
+  if (remoteDepVersion == "") {
     return {
       exists: exists,
       isAllowHigherVersion: isAllowHigherVersion,
@@ -41,11 +41,12 @@ export function checkPackageJsonForDependency(
       foundIn: "",
     };
   }
-  if (ver[0] == "^") {
+  if (remoteDepVersion[0] == "^") {
     isAllowHigherVersion = true;
-    ver = ver.substring(1);
+    remoteDepVersion = remoteDepVersion.substring(1);
   }
-  const version_satisfied = checkIfVersionSatisfied(depVersion, ver);
+  // returns true if inputVersion <= remoteVersion
+  const version_satisfied = lte(inputDepVersion, remoteDepVersion);
 
   return {
     exists: exists,

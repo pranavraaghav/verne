@@ -10,6 +10,7 @@
     "@types/conf": "^3.0.0",
     "@types/meow": "^6.0.0",
     "@types/node": "^17.0.36",
+    "@types/semver": "^7.3.9",
     "@typescript-eslint/eslint-plugin": "^5.27.0",
     "@typescript-eslint/parser": "^5.27.0",
     "eslint": "^8.16.0",
@@ -36,7 +37,8 @@
     "moment": "^2.29.3",
     "nanospinner": "^1.1.0",
     "octokit": "^1.7.1",
-    "open": "^8.4.0"
+    "open": "^8.4.0",
+    "semver": "^7.3.7"
   },
   "bin": "./bin/cli.js"
 }

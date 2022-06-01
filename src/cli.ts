@@ -14,6 +14,8 @@ import { updateDependency } from "./core/updateDependency.js";
 import { checkDependency } from "./core/checkDependency.js";
 import { getAccessToken } from "./auth/getAccessToken.js";
 
+import { validateInput } from "./core/util/validateInput.js";
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
@@ -24,7 +26,7 @@ const conf = new Conf();
 const cli = meow(
   `
 Usage
-$ foo <input>
+$ foo <input>  <input> must be of form <name>@<version-number>
 
 Options
 --file, -i   Describe location of CSV 
@@ -94,6 +96,12 @@ const octokit = new Octokit({
 });
 
 const dependencyToCheck = cli.input[0];
+
+// Ensuring the user provided input is valid
+if (validateInput(dependencyToCheck) == false) {
+  console.log("Invalid dependency/version provided.");
+  process.exit(1);
+}
 
 const spinnerParseCSV = createSpinner("Parsing CSV input").start();
 fs.createReadStream(`${__dirname}/${cli.flags.file}`)
