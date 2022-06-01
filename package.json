@@ -19,9 +19,11 @@
     "typescript": "^4.7.2"
   },
   "scripts": {
-    "dev": "tsc && node ./bin/index.js",
+    "dev": "tsc && node ./bin/cli.js",
     "build": "tsc",
-    "cli": "tsc && node ./bin/cli.js",
+    "cli": "node ./bin/cli.js",
+    "prepublish": "chmod +x ./bin/cli.js",
+    "preinstall": "chmod +x ./bin/cli.js",
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix"
   },
