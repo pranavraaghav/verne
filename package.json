@@ -22,7 +22,7 @@
     "dev": "tsc && node ./bin/cli.js",
     "build": "tsc",
     "cli": "node ./bin/cli.js",
-    "prepublish": "chmod +x ./bin/cli.js",
+    "prepublishOnly": "chmod +x ./bin/cli.js",
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix"
   },
