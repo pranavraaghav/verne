@@ -17,8 +17,7 @@ import enquirer from "enquirer";
 const { prompt } = enquirer;
 
 // Since esmodules doesn't support __dirname, we make one for ourselves
-const currentDir = dirname(fileURLToPath(import.meta.url));
-const __dirname = resolve(currentDir + "/..");
+const __dirname = process.cwd();
 
 // Initialize configs
 dotenv.config();
