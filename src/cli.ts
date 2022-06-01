@@ -22,7 +22,10 @@ const __dirname = resolve(currentDir + "/..");
 
 // Initialize configs
 dotenv.config();
-const conf = new Conf();
+const conf = new Conf({
+  projectName: "verne",
+  projectVersion: "1.0.0",
+});
 
 // Initialize cli
 const cli = meow(
@@ -68,11 +71,12 @@ if (validateInput(inputDependency) == false) {
 }
 
 // Ensuring oauthClientID (used to login to Github) is present
-const oauthClientID = process.env["OAUTH_CLIENT_ID"];
-if (oauthClientID == undefined) {
-  console.error("Undefined environment variable");
-  process.exit(1);
-}
+// const oauthClientID = process.env["OAUTH_CLIENT_ID"];
+// if (oauthClientID == undefined) {
+//   console.error("Undefined environment variable");
+//   process.exit(1);
+// }
+const oauthClientID = "d2b9dffc072606452529";
 
 let access_token;
 
