@@ -95,7 +95,7 @@ export async function updateDependencyInDiffRepo(
   const prResponse = await octokit.request("POST /repos/{owner}/{repo}/pulls", {
     owner: owner,
     repo: repo,
-    title: "Updated dependencies",
+    title: `Update ${depName} to v${depVersion}`,
     body: "Merge these or else 🔪",
     head: `${currentUser}:${base_branch_name}`,
     base: base_branch_name,
