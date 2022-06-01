@@ -23,7 +23,6 @@
     "build": "tsc",
     "cli": "node ./bin/cli.js",
     "prepublish": "chmod +x ./bin/cli.js",
-    "preinstall": "chmod +x ./bin/cli.js",
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix"
   },
