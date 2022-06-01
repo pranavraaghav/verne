@@ -31,7 +31,7 @@ $ foo <input>  <input> must be of form <name>@<version-number>
 Options
 --file, -i   Describe location of CSV 
 --update, -u  Update dependancies 
---flush, -f  Clear logged in GitHub user 
+--clear-login  Clear logged in GitHub user 
 
 Examples
 $ foo -i input.csv axios@0.23.0
@@ -49,10 +49,9 @@ $ foo -i input.csv axios@0.23.0
         default: false,
         alias: "u",
       },
-      flush: {
+      clear: {
         type: "boolean",
         default: false,
-        alias: "f",
       },
     },
   }
@@ -66,7 +65,7 @@ if (oauthClientID == undefined) {
 
 let access_token;
 
-if (cli.flags.flush) {
+if (cli.flags.clear) {
   access_token = await getAccessToken(oauthClientID, conf);
 } else {
   access_token = conf.get("ACCESS_TOKEN", undefined);
