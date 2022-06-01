@@ -26,7 +26,6 @@
     <a href="https://github.com/dyte-submissions/dyte-vit-2022-pranavraagz"><strong>Explore the docs »</strong></a>
     <br />
     <br />
-    ·
     <a href="https://github.com/dyte-submissions/dyte-vit-2022-pranavraagz/issues">Report Bug</a>
     ·
     <a href="https://github.com/dyte-submissions/dyte-vit-2022-pranavraagz/issues">Request Feature</a>
