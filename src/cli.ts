@@ -1,38 +1,39 @@
 #!/usr/bin/env node
 
-import meow from "meow";
-import * as fs from "fs";
-
 import { fileURLToPath } from "url";
 import { resolve, dirname } from "path";
-import * as csv from "fast-csv";
 import { Octokit } from "octokit";
-import * as dotenv from "dotenv";
-import Conf from "conf";
 import { createSpinner } from "nanospinner";
 import { updateDependency } from "./core/updateDependency.js";
 import { checkDependency } from "./core/checkDependency.js";
 import { getAccessToken } from "./auth/getAccessToken.js";
 import { validateInput } from "./core/util/validateInput.js";
+import meow from "meow";
+import * as fs from "fs";
+import * as csv from "fast-csv";
+import * as dotenv from "dotenv";
+import Conf from "conf";
 import enquirer from "enquirer";
 const { prompt } = enquirer;
 
+// Since esmodules doesn't support __dirname, we make one for ourselves
 const currentDir = dirname(fileURLToPath(import.meta.url));
 const __dirname = resolve(currentDir + "/..");
 
+// Initialize configs
 dotenv.config();
 const conf = new Conf();
 
-// SETUP CLI
+// Initialize cli
 const cli = meow(
   `
 Usage
-$ foo <input>  <input> must be of form <name>@<version-number>
+$ foo <input>         <input> must be of form <name>@<version-number>
 
 Options
---file, -i   Describe location of CSV 
---update, -u  Update dependancies 
---clear  Clear logged in GitHub user 
+--file, -i            Describe location of CSV 
+--update, -u          Update dependancies 
+--clear               Clear logged in GitHub user 
 
 Examples
 $ foo -i input.csv axios@0.23.0
@@ -58,7 +59,15 @@ $ foo -i input.csv axios@0.23.0
   }
 );
 
-// OBTAIN GITHUB ACCESS TOKEN
+const inputDependency = cli.input[0];
+
+// Ensuring the user provided input is valid
+if (validateInput(inputDependency) == false) {
+  console.log("Invalid dependency/version provided.");
+  process.exit(1);
+}
+
+// Ensuring oauthClientID (used to login to Github) is present
 const oauthClientID = process.env["OAUTH_CLIENT_ID"];
 if (oauthClientID == undefined) {
   console.error("Undefined environment variable");
@@ -67,46 +76,41 @@ if (oauthClientID == undefined) {
 
 let access_token;
 
+// Check if force re-login is required
 if (cli.flags.clear) {
   access_token = await getAccessToken(oauthClientID, conf);
 } else {
+  // Try to fetch access_token from local config files (caching)
   access_token = conf.get("ACCESS_TOKEN", undefined);
   if (access_token != undefined) {
     const expires_at = conf.get("EXPIRES_AT", "");
     if (typeof expires_at !== "string") {
       process.exit();
     }
+    // Check if access_token is expired, get new one if expired
     const date = new Date(expires_at);
     if (new Date() > date) {
       console.log("Existing token has expired, fetching new access token");
       try {
-        access_token = await getAccessToken(oauthClientID, conf);
       } catch (error) {
         console.log(error);
         process.exit();
       }
     }
   } else {
+    // Fetch new access_token if not cached
     access_token = await getAccessToken(oauthClientID, conf);
   }
 }
 
-// MAIN LOGIC
-const promises: Promise<DependencyResponse>[] = [];
-
+// Initiate Octokit singleton
 const octokit = new Octokit({
   auth: access_token,
 });
 
-const dependencyToCheck = cli.input[0];
+const resultPromises: Promise<DependencyResponse>[] = [];
 
-// Ensuring the user provided input is valid
-if (validateInput(dependencyToCheck) == false) {
-  console.log("Invalid dependency/version provided.");
-  process.exit(1);
-}
-
-// Confirm once again with user if trying to update
+// If the operation to be done is an update, onfirm once again with user
 if (cli.flags.update) {
   const promptResp: {
     isProceed: boolean;
@@ -122,25 +126,38 @@ if (cli.flags.update) {
   }
 }
 
-const spinnerParseCSV = createSpinner("Parsing CSV input").start();
+// Setup Spinners
+const spinnerParseCSV = createSpinner("Parsing CSV input");
+const spinnerOperations = createSpinner("Performing operations");
+
+spinnerParseCSV.start();
+// Reading the CSV file
 fs.createReadStream(`${__dirname}/${cli.flags.file}`)
+  // Catch any errors while creating stream
   .on("error", (error) => {
     spinnerParseCSV.error();
     console.error(error);
     process.exit(1);
   })
   .pipe(csv.parse({ headers: true }))
+  // Catch any errors while parsing
   .on("error", (error) => {
     spinnerParseCSV.error();
     console.error(error);
     process.exit(1);
   })
-  .on("data", async (row) => {
-    const url = row["repo"];
+  // Run the respective operation on each row from CSV
+  // and add the result(a Promise) to a queue
+  .on("data", (row) => {
+    const githubRepoUrl = row["repo"];
     if (cli.flags.update == true) {
-      promises.push(updateDependency(dependencyToCheck, url, octokit));
+      resultPromises.push(
+        updateDependency(inputDependency, githubRepoUrl, octokit)
+      );
     } else {
-      promises.push(checkDependency(dependencyToCheck, url, octokit));
+      resultPromises.push(
+        checkDependency(inputDependency, githubRepoUrl, octokit)
+      );
     }
   })
   .on("end", () => {
@@ -149,12 +166,14 @@ fs.createReadStream(`${__dirname}/${cli.flags.file}`)
 
     csvOutStream.pipe(fs.createWriteStream(`${__dirname}/output.csv`));
 
-    const spinnerOperations = createSpinner("Performing operations").start();
-    Promise.all(promises).then((resolved) => {
-      resolved.forEach((item) => {
+    spinnerOperations.start();
+
+    Promise.all(resultPromises).then((results) => {
+      // Write items from result into an output csv file
+      results.forEach((item) => {
         csvOutStream.write(item);
       });
       spinnerOperations.success();
-      console.table(resolved);
+      console.table(results);
     });
   });
