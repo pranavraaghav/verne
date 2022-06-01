@@ -20,7 +20,7 @@
   "scripts": {
     "dev": "tsc && node ./bin/index.js",
     "build": "tsc",
-    "cli": "tsc && node .",
+    "cli": "tsc && node ./bin/cli.js",
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix"
   },
