@@ -29,18 +29,27 @@ export async function updateDependencyInOwnRepo(
   const depName = s[0];
   const depVersion = s[1];
 
-  const { exists, isAllowHigherVersion, version_satisfied, foundIn } =
-    checkPackageJsonForDependency(depName, depVersion, file);
+  const {
+    exists,
+    isAllowHigherVersion,
+    version_satisfied,
+    foundIn,
+    isMajorChange,
+  } = checkPackageJsonForDependency(depName, depVersion, file);
 
+  let update_pr_placeholder = "";
+  if (isMajorChange) {
+    update_pr_placeholder = "Major version change";
+  }
   // No changes to be made in these cases, exit
-  if (exists == false || version_satisfied == true) {
+  if (exists == false || version_satisfied == true || isMajorChange) {
     return {
       name: repo,
       repo: url,
       version: depVersion,
       version_satisfied: version_satisfied,
       exists: exists,
-      update_pr: "",
+      update_pr: update_pr_placeholder,
     };
   }
 

@@ -1,5 +1,5 @@
-import pkg from "semver";
-const { lte } = pkg;
+import semver from "semver";
+const { lte, diff } = semver;
 /**
  *
  * @param inputDepName
@@ -16,6 +16,7 @@ export function checkPackageJsonForDependency(
   version_satisfied: boolean;
   isAllowHigherVersion: boolean;
   foundIn: string;
+  isMajorChange: boolean;
 } {
   let exists = false;
   let isAllowHigherVersion = false;
@@ -33,25 +34,31 @@ export function checkPackageJsonForDependency(
     remoteDepVersion = devDependencies[inputDepName];
     foundIn = "devDependencies";
   }
+  // Case where remote dependency is not present in package.json
   if (remoteDepVersion == "") {
     return {
       exists: exists,
       isAllowHigherVersion: isAllowHigherVersion,
       version_satisfied: false,
       foundIn: "",
+      isMajorChange: false,
     };
   }
+
+  // Remove pre-fix "^" before processing if present
   if (remoteDepVersion[0] == "^") {
-    isAllowHigherVersion = true;
     remoteDepVersion = remoteDepVersion.substring(1);
+    isAllowHigherVersion = true;
   }
   // returns true if inputVersion <= remoteVersion
   const version_satisfied = lte(inputDepVersion, remoteDepVersion);
 
+  const releaseType = diff(inputDepVersion, remoteDepVersion);
   return {
     exists: exists,
     isAllowHigherVersion: isAllowHigherVersion,
     version_satisfied: version_satisfied,
     foundIn: foundIn,
+    isMajorChange: releaseType == "major",
   };
 }
