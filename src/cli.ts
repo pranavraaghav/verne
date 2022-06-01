@@ -60,7 +60,8 @@ $ foo -i input.csv axios@0.23.0
 // OBTAIN GITHUB ACCESS TOKEN
 const oauthClientID = process.env["OAUTH_CLIENT_ID"];
 if (oauthClientID == undefined) {
-  process.exit(-1);
+  console.error("Undefined environment variable");
+  process.exit(1);
 }
 
 let access_token;
@@ -84,6 +85,8 @@ if (cli.flags.clear) {
         process.exit();
       }
     }
+  } else {
+    access_token = await getAccessToken(oauthClientID, conf);
   }
 }
 
@@ -127,9 +130,7 @@ fs.createReadStream(`${__dirname}/${cli.flags.file}`)
     spinnerParseCSV.success();
     const csvOutStream = csv.format({ headers: true });
 
-    csvOutStream
-      .pipe(fs.createWriteStream(`${__dirname}/output.csv`))
-      .on("end", () => process.exit());
+    csvOutStream.pipe(fs.createWriteStream(`${__dirname}/output.csv`));
 
     const spinnerOperations = createSpinner("Performing operations").start();
     Promise.all(promises).then((resolved) => {
