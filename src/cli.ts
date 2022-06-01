@@ -105,8 +105,17 @@ if (validateInput(dependencyToCheck) == false) {
 
 const spinnerParseCSV = createSpinner("Parsing CSV input").start();
 fs.createReadStream(`${__dirname}/${cli.flags.file}`)
+  .on("error", (error) => {
+    spinnerParseCSV.error();
+    console.error(error);
+    process.exit(1);
+  })
   .pipe(csv.parse({ headers: true }))
-  .on("error", (error) => console.error(error))
+  .on("error", (error) => {
+    spinnerParseCSV.error();
+    console.error(error);
+    process.exit(1);
+  })
   .on("data", async (row) => {
     const url = row["repo"];
     if (cli.flags.update == true) {
