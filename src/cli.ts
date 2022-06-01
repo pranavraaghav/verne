@@ -28,7 +28,7 @@ const conf = new Conf();
 const cli = meow(
   `
 Usage
-$ foo <input>         <input> must be of form <name>@<version-number>
+$ verne <input>         <input> must be of form <name>@<version-number>
 
 Options
 --file, -i            Describe location of CSV 
@@ -36,7 +36,7 @@ Options
 --clear               Clear logged in GitHub user 
 
 Examples
-$ foo -i input.csv axios@0.23.0
+$ verne -i input.csv axios@0.23.0
 `,
   {
     importMeta: import.meta,
