@@ -11,7 +11,7 @@ export async function updateDependencyInDiffRepo(
   repo: string,
   filename: string,
   octokit: Octokit
-) {
+): Promise<DependencyResponse> {
   // fetch file
   const { file, file_sha } = await getFileAndShaFromGithubRepo(
     owner,

@@ -12,7 +12,7 @@ export async function updateDependencyInOwnRepo(
   repo: string,
   filename: string,
   octokit: Octokit
-) {
+): Promise<DependencyResponse> {
   let base_branch_name = "main";
 
   // fetch file

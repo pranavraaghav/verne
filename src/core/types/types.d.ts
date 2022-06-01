@@ -4,4 +4,5 @@ interface DependencyResponse {
   version: string;
   version_satisfied: boolean;
   exists: boolean;
+  update_pr?: string;
 }
