@@ -60,20 +60,6 @@ export async function updateDependencyInDiffRepo(
     depVersion
   );
 
-  // Get all existing branches of repo
-  const branchResp = await octokit.request(
-    `GET /repos/${owner}/${repo}/branches`,
-    {
-      headers: {
-        accept: "application/vnd.github.v3+json",
-      },
-    }
-  );
-
-  // Get the base branch's name
-  // data[0] since first branch is *usually* base
-  const base_branch_name = branchResp.data[0]["name"];
-
   // Fork the repo
   await octokit.request("POST /repos/{owner}/{repo}/forks", {
     owner: owner,
@@ -81,14 +67,29 @@ export async function updateDependencyInDiffRepo(
   });
 
   // Apply changes in your fork
-  await octokit.request("PUT /repos/{owner}/{repo}/contents/{path}", {
-    owner: currentUser,
-    repo: repo,
-    path: filename,
-    message: `Update dependency ${depName} to v${depVersion}`,
-    content: newContent,
-    sha: file_sha,
-  });
+  const forkResp = await octokit.request(
+    "PUT /repos/{owner}/{repo}/contents/{path}",
+    {
+      owner: currentUser,
+      repo: repo,
+      path: filename,
+      message: `Update dependency ${depName} to v${depVersion}`,
+      content: newContent,
+      sha: file_sha,
+    }
+  );
+
+  // Get the base (primary) branch's name
+  let base_branch_name = "main"; // Initial assumption
+  // The update we make on fork is automatically applied to the base branch
+  // Can parse the download_url from the response to figure out the name of branch
+  // e.g. download_url: 'https://raw.githubusercontent.com/pranavraagz/javascript-sample-app/main/package.json'
+  const downloadUrl = forkResp.data.content?.download_url ?? "";
+  const urlChunks = downloadUrl.split("/");
+  const base = urlChunks[urlChunks.length - 2] ?? "";
+  if (base != "") {
+    base_branch_name = base;
+  }
 
   // Make the PR
   const prResponse = await octokit.request("POST /repos/{owner}/{repo}/pulls", {
