@@ -21,7 +21,7 @@
 <h3 align="center">Verne - Dyte VIT 2022 Task</h3>
 
   <p align="center">
-    CLI Tool that checks if a dependency satisfies a certain version accross multiple repositories. Allows for updating the dependency in said repository if applicable.
+    CLI Tool that validates dependency satisfaction accross multiple Github repositories and optionally updates them if necessary.
     <br />
     <a href="https://github.com/dyte-submissions/dyte-vit-2022-pranavraagz"><strong>Explore the docs »</strong></a>
     <br />
@@ -54,10 +54,7 @@
     </li>
     <li><a href="#usage">Usage</a></li>
     <li><a href="#roadmap">Roadmap</a></li>
-    <li><a href="#contributing">Contributing</a></li>
-    <li><a href="#license">License</a></li>
     <li><a href="#contact">Contact</a></li>
-    <li><a href="#acknowledgments">Acknowledgments</a></li>
   </ol>
 </details>
 
@@ -89,7 +86,6 @@ To get a local copy up and running follow these simple example steps.
 
 ### Prerequisites
 
-This is an example of how to list things you need to use the software and how to install them.
 * npm
   ```sh
   npm install npm@latest -g
@@ -106,15 +102,11 @@ This is an example of how to list things you need to use the software and how to
    ```sh
    npm install
    ```
-3. Build the app 
+3. Build the cli 
    ```sh
    npm run build
    ```
 4. Install it globally on your system (might require superuser)
-   ```sh
-   npm install -g .
-   ```
-   or 
    ```sh
    sudo npm install -g .
    ```
@@ -124,7 +116,7 @@ This is an example of how to list things you need to use the software and how to
 
 <!-- USAGE EXAMPLES -->
 ## Usage
-### Input 
+### Input format
 ```
 $ verne <input>         <input> must be of form <name>@<version-number>
 ```
@@ -140,11 +132,11 @@ Options
 ### Examples
 #### Check if `axios@0.23.0` is satisfied by all repos in `input.csv`
 ```
-$ verne -i input.csv axios@0.23.0
+verne -i input.csv axios@0.23.0
 ```
 #### Check if `axios@0.23.0` is satisfied by all repos in `input.csv` AND update if not satisfied
 ```
-$ verne -u -i input.csv axios@0.23.0
+verne -u -i input.csv axios@0.23.0
 ```
 **_NOTE:_** <br/>
 * Updates will not be made when version is satisfied. 
@@ -152,7 +144,7 @@ $ verne -u -i input.csv axios@0.23.0
 * Major changes are not updated automatically (this is an intended feature) and will have to be done manually on a repo-by-repo basis due to its breaking nature. 
 #### Force a login attempt
 ```
-$ verne --clear -i input.csv axios@0.23.0
+verne --clear -i input.csv axios@0.23.0
 ```
 
 ### Sample `.csv` file: 
@@ -167,8 +159,8 @@ dyte-sample-app-backend,https://github.com/dyte-in/backend-sample-app
 
 
 
-<!-- ROADMAP -->
-## Features and Roadmap
+<!-- FEATURES -->
+## Features
 
 - [x] Check for dependency satisfaction in public & private repos
 - [x] Update dependencies
@@ -178,19 +170,15 @@ dyte-sample-app-backend,https://github.com/dyte-in/backend-sample-app
 - [x] Credential caching 
 - [x] Read & Write CSV
 - [x] Prevent updating dependency on major changes (breaking changes) 
-- [ ] Tables with wordWrap to fit data in smaller terminal windows
-- [ ] Add functionality to run as a Github Action 
 
-See the [open issues](https://github.com/dyte-submissions/dyte-vit-2022-pranavraagz/issues) for a full list of proposed features (and known issues).
-
-<p align="right">(<a href="#top">back to top</a>)</p>
-
-
-
-<!-- LICENSE -->
-## License
-
-Distributed under the MIT License. See `LICENSE.txt` for more information.
+<!-- ROADMAP -->
+## Roadmap
+- [ ] Unit tests 
+- [ ] Run as a Github Action 
+- [ ] Tables with column word wrap to fit data in smaller terminal windows
+- [ ] Empathetic CLI interactions (ask for input if not provided instead of exiting) 
+- [ ] Colorful CLI (for easy distinguishability)
+- [ ] Config cleanup upon uninstall  
 
 <p align="right">(<a href="#top">back to top</a>)</p>
 
