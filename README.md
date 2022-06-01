@@ -63,7 +63,8 @@
 <!-- ABOUT THE PROJECT -->
 ## About The Project
 
-[![Product Name Screen Shot][product-screenshot]](https://example.com)
+[![Product Name Screen Shot][product-screenshot1]](https://example.com)
+[![Product Name Screen Shot][product-screenshot2]](https://example.com)
 
 
 
@@ -199,4 +200,5 @@ Project Link: [https://github.com/dyte-submissions/dyte-vit-2022-pranavraagz](ht
 <!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
 [linkedin-shield]: https://img.shields.io/badge/-LinkedIn-black.svg?style=for-the-badge&logo=linkedin&colorB=555
 [linkedin-url]: https://www.linkedin.com/in/pranav-raaghav-a7a115196/
-[product-screenshot]: images/screenshot.png
+[product-screenshot1]: images/screenshot1.png
+[product-screenshot2]: images/screenshot2.png
