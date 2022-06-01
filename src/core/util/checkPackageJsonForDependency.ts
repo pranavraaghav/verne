@@ -15,6 +15,7 @@ export function checkPackageJsonForDependency(
   exists: boolean;
   version_satisfied: boolean;
   isAllowHigherVersion: boolean;
+  remoteVersion: string;
   foundIn: string;
   isMajorChange: boolean;
 } {
@@ -40,6 +41,7 @@ export function checkPackageJsonForDependency(
       exists: exists,
       isAllowHigherVersion: isAllowHigherVersion,
       version_satisfied: false,
+      remoteVersion: "",
       foundIn: "",
       isMajorChange: false,
     };
@@ -58,6 +60,7 @@ export function checkPackageJsonForDependency(
     exists: exists,
     isAllowHigherVersion: isAllowHigherVersion,
     version_satisfied: version_satisfied,
+    remoteVersion: remoteDepVersion,
     foundIn: foundIn,
     isMajorChange: releaseType == "major",
   };

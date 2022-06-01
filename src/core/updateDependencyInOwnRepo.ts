@@ -33,6 +33,7 @@ export async function updateDependencyInOwnRepo(
     exists,
     isAllowHigherVersion,
     version_satisfied,
+    remoteVersion,
     foundIn,
     isMajorChange,
   } = checkPackageJsonForDependency(depName, depVersion, file);
@@ -46,7 +47,7 @@ export async function updateDependencyInOwnRepo(
     return {
       name: repo,
       repo: url,
-      version: depVersion,
+      version: remoteVersion,
       version_satisfied: version_satisfied,
       exists: exists,
       update_pr: update_pr_placeholder,
@@ -80,7 +81,7 @@ export async function updateDependencyInOwnRepo(
       return {
         name: repo,
         repo: url,
-        version: depVersion,
+        version: remoteVersion,
         version_satisfied: version_satisfied,
         exists: exists,
         update_pr: "",
@@ -131,7 +132,7 @@ export async function updateDependencyInOwnRepo(
   return {
     name: repo,
     repo: url,
-    version: depVersion,
+    version: remoteVersion,
     version_satisfied: version_satisfied,
     exists: exists,
     update_pr: pullRequestURL,

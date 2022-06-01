@@ -24,16 +24,13 @@ export async function checkDependency(
   const depName = s[0];
   const depVersion = s[1];
 
-  const { exists, version_satisfied } = checkPackageJsonForDependency(
-    depName,
-    depVersion,
-    file
-  );
+  const { exists, version_satisfied, remoteVersion } =
+    checkPackageJsonForDependency(depName, depVersion, file);
 
   return {
     name: repo,
     repo: url,
-    version: depVersion,
+    version: remoteVersion,
     version_satisfied: version_satisfied,
     exists: exists,
   };
