@@ -16,7 +16,7 @@ export function updatePackageJsonContent(
     }
     file["dependencies"] = dependencies;
     const obj: object = file;
-    newContent = Buffer.from(JSON.stringify(obj, null, 4)).toString("base64");
+    newContent = Buffer.from(JSON.stringify(obj, null, 2)).toString("base64");
   }
   return newContent;
 }
