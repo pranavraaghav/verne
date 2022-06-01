@@ -141,21 +141,31 @@ verne -u -i input.csv axios@0.23.0
 ```
 **_NOTE:_** <br/>
 * Updates will not be made when version is satisfied. 
-* Updates cannot be made on repositories with a pre-existing un-merged update PR made by the CLI. 
+* Updates cannot be made on repositories with a pre-existing un-merged update PR made by the CLI. (attempting to doing so might crash the app)
 * Major changes are not updated automatically (this is an intended feature) and will have to be done manually on a repo-by-repo basis due to its breaking nature. 
 #### Force a login attempt
 ```
 verne --clear -i input.csv axios@0.23.0
 ```
 
-### Sample `.csv` file: 
+### Sample CSV files: 
+#### From problem statement 
 ```csv
 name,repo
 dyte-react-sample-app,https://github.com/dyte-in/react-sample-app/
 dyte-js-sample-app,https://github.com/dyte-in/javascript-sample-app
 dyte-sample-app-backend,https://github.com/dyte-in/backend-sample-app
 ```
+#### Testing dependency update on repo not owned by you
+```csv
+name,repo
+reddit-backend-clone,https://github.com/pranavraagz/reddit-backend-clone
+```
+**_NOTE:_** For the above, consider  running with dependency `bcrypt@5.0.5` (anything higher than 5.0.1)
 
+## Caveats (do not skip)
+In case you have already made a PR on a repo **you do not own** using this tool, then attempting to make another (using --update) one might crash the tool during runtime due to an unhandled edge case. To overcome this, you could go to your Github profile and delete the forked repository (which in turn should delete the PR) and then try again. <br/>
+Likewise on repos that **you own**, you might have to delete the newly created branch (which in turn should delete the PR) in order to be able to run the tool (using --update) on it again.
 <p align="right">(<a href="#top">back to top</a>)</p>
 
 
@@ -174,6 +184,8 @@ dyte-sample-app-backend,https://github.com/dyte-in/backend-sample-app
 
 <!-- ROADMAP -->
 ## Roadmap
+- [ ] Allow creation of multiple PRs on same repo for different dependencies
+- [ ] Handle cases where a package.json isn't present at all 
 - [ ] Unit tests 
 - [ ] Run as a Github Action 
 - [ ] Tables with column word wrap to fit data in smaller terminal windows
