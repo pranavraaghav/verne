@@ -13,8 +13,9 @@ import { createSpinner } from "nanospinner";
 import { updateDependency } from "./core/updateDependency.js";
 import { checkDependency } from "./core/checkDependency.js";
 import { getAccessToken } from "./auth/getAccessToken.js";
-
 import { validateInput } from "./core/util/validateInput.js";
+import enquirer from "enquirer";
+const { prompt } = enquirer;
 
 const currentDir = dirname(fileURLToPath(import.meta.url));
 const __dirname = resolve(currentDir + "/..");
@@ -103,6 +104,22 @@ const dependencyToCheck = cli.input[0];
 if (validateInput(dependencyToCheck) == false) {
   console.log("Invalid dependency/version provided.");
   process.exit(1);
+}
+
+// Confirm once again with user if trying to update
+if (cli.flags.update) {
+  const promptResp: {
+    isProceed: boolean;
+  } = await prompt({
+    type: "confirm",
+    name: "isProceed",
+    message:
+      "Are you sure you want to update the dependency in repositories? (Major changes will not be auto-updated)",
+  });
+  if (promptResp["isProceed"] == false) {
+    console.log("Exiting...");
+    process.exit(0);
+  }
 }
 
 const spinnerParseCSV = createSpinner("Parsing CSV input").start();
