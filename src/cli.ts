@@ -32,7 +32,7 @@ $ foo <input>  <input> must be of form <name>@<version-number>
 Options
 --file, -i   Describe location of CSV 
 --update, -u  Update dependancies 
---clear-login  Clear logged in GitHub user 
+--clear  Clear logged in GitHub user 
 
 Examples
 $ foo -i input.csv axios@0.23.0
