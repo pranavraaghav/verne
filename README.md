@@ -18,10 +18,11 @@
     <img src="images/logo.png" alt="Logo" width="80" height="80">
   </a>
 
-<h3 align="center">Verne - Dyte VIT 2022 Task</h3>
+<h3 align="center">Verne</h3>
 
   <p align="center">
-    CLI Tool that validates dependency satisfaction accross multiple Github repositories and optionally updates them if necessary.
+    CLI Tool that validates dependency satisfaction accross multiple Github repositories and optionally updates them if necessary.<br/>
+    <b>Built within 48 hours for Dyte's SDE Tooling Internship Task.<b/>
     <br />
     <a href="https://github.com/dyte-submissions/dyte-vit-2022-pranavraagz"><strong>Explore the docs »</strong></a>
     <br />
@@ -165,6 +166,8 @@ reddit-backend-clone,https://github.com/pranavraagz/reddit-backend-clone
 ## Caveats (do not skip)
 In case you have already made a PR on a repo **you do not own** using this tool, then attempting to make another (using --update) one might crash the tool during runtime due to an unhandled edge case. To overcome this, you could go to your Github profile and delete the forked repository (which in turn should delete the PR) and then try again. <br/>
 Likewise on repos that **you own**, you might have to delete the newly created branch (which in turn should delete the PR) in order to be able to run the tool (using --update) on it again.
+
+**The current version of the CLI does not update the .lock file in the repo (this is a required functionality) but will be addressed in a future update.**
 <p align="right">(<a href="#top">back to top</a>)</p>
 
 
@@ -183,6 +186,7 @@ Likewise on repos that **you own**, you might have to delete the newly created b
 
 <!-- ROADMAP -->
 ## Roadmap
+- [ ] Update the .lock file's dependencies as well 
 - [ ] Allow creation of multiple PRs on same repo for different dependencies
 - [ ] Handle cases where a package.json isn't present at all 
 - [ ] Unit tests 
